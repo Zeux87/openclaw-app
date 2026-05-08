@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="OpenClaw" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <title>OpenClaw Chat</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --panel: #141420;
+      --panel2: #1c1c2b;
+      --text: #f4f4f7;
+      --muted: #a3a3b5;
+      --accent: #7c5cff;
+      --accent2: #34d399;
+      --danger: #fb7185;
+      --border: rgba(255,255,255,.1);
+      --shadow: 0 18px 60px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: radial-gradient(circle at top, #1d1640 0, var(--bg) 42%, #050508 100%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom);
+    }
+
+    .app {
+      width: 100%;
+      max-width: 820px;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 16px 4px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent), #ff7ad9);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      box-shadow: var(--shadow);
+      flex: 0 0 auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .status {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.07);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .status.connected { color: #b7f7d7; border-color: rgba(52,211,153,.35); background: rgba(52,211,153,.11); }
+    .status.connecting { color: #fde68a; border-color: rgba(253,230,138,.35); background: rgba(253,230,138,.10); }
+    .status.error { color: #fecdd3; border-color: rgba(251,113,133,.35); background: rgba(251,113,133,.12); }
+
+    .settings {
+      background: rgba(20,20,32,.86);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      margin-bottom: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin: 0 0 5px 2px;
+    }
+
+    input, textarea, button {
+      font: inherit;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px;
+      outline: none;
+    }
+
+    input:focus, textarea:focus {
+      border-color: rgba(124,92,255,.75);
+      box-shadow: 0 0 0 4px rgba(124,92,255,.14);
+    }
+
+    .settings-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: white;
+      background: var(--panel2);
+      cursor: pointer;
+      font-weight: 650;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), #9f7aea);
+      flex: 1;
+    }
+
+    button.ghost {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0 12px;
+      scroll-behavior: smooth;
+    }
+
+    .msg {
+      display: flex;
+      margin: 10px 0;
+      animation: pop .16s ease-out;
+    }
+
+    @keyframes pop {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .bubble {
+      max-width: min(82%, 620px);
+      padding: 12px 14px;
+      border-radius: 20px;
+      line-height: 1.38;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      border: 1px solid var(--border);
+    }
+
+    .msg.user { justify-content: flex-end; }
+    .msg.user .bubble {
+      background: linear-gradient(135deg, var(--accent), #6d5dfc);
+      border-bottom-right-radius: 6px;
+    }
+
+    .msg.assistant { justify-content: flex-start; }
+    .msg.assistant .bubble {
+      background: rgba(255,255,255,.075);
+      border-bottom-left-radius: 6px;
+    }
+
+    .msg.system { justify-content: center; }
+    .msg.system .bubble {
+      max-width: 92%;
+      text-align: center;
+      color: var(--muted);
+      background: transparent;
+      border: 0;
+      font-size: 13px;
+    }
+
+    .composer {
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(180deg, rgba(10,10,15,0), rgba(10,10,15,.92) 18%, rgba(10,10,15,1));
+      padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+    }
+
+    .composer-box {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      background: rgba(20,20,32,.9);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 8px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    textarea {
+      flex: 1;
+      min-height: 44px;
+      max-height: 150px;
+      resize: none;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      padding: 11px 8px;
+      line-height: 1.35;
+    }
+
+    .send {
+      width: 46px;
+      height: 46px;
+      padding: 0;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--accent2), #22c55e);
+      color: #06120b;
+      font-size: 20px;
+      flex: 0 0 auto;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(82px + env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.78);
+      color: white;
+      padding: 10px 13px;
+      border-radius: 999px;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+      z-index: 20;
+      max-width: 92vw;
+      text-align: center;
+    }
+
+    .toast.show { opacity: 1; }
+
+    .small-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 620px) {
+      body { padding-left: 10px; padding-right: 10px; }
+      .settings-row { grid-template-columns: 1fr; }
+      .bubble { max-width: 88%; }
+      header { padding-top: 12px; }
+      .status { max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="brand">
+        <div class="avatar">👩‍💼</div>
+        <div>
+          <h1>OpenClaw · Sara</h1>
+          <div class="sub">Chat privado vía Gateway WebSocket</div>
+        </div>
+      </div>
+      <div id="status" class="status">desconectado</div>
+    </header>
+
+    <section class="settings">
+      <div class="grid">
+        <div>
+          <label for="url">URL del gateway</label>
+          <input id="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="wss://tu-host:18789/__openclaw__/ws" />
+        </div>
+        <div>
+          <label for="key">Gateway token / key</label>
+          <input id="key" autocomplete="off" autocapitalize="off" spellcheck="false" type="password" placeholder="Pega aquí el token del gateway" />
+        </div>
+        <div class="settings-row">
+          <div>
+            <label for="sessionKey">Session key</label>
+            <input id="sessionKey" autocomplete="off" autocapitalize="off" spellcheck="false" value="agent:main:main" />
+          </div>
+          <div>
+            <label for="displayName">Nombre del cliente</label>
+            <input id="displayName" autocomplete="off" value="Pablo iPhone" />
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="connectBtn" class="primary">Conectar</button>
+        <button id="disconnectBtn" class="ghost">Desconectar</button>
+        <button id="clearBtn" class="ghost">Limpiar</button>
+      </div>
+      <div class="small-note">
+        Si lo abres desde GitHub Pages, usa <b>wss://</b> y añade el origen de GitHub Pages a <code>gateway.controlUi.allowedOrigins</code>.
+      </div>
+    </section>
+
+    <section id="chat" class="chat" aria-live="polite"></section>
+
+    <section class="composer">
+      <form id="form" class="composer-box">
+        <textarea id="message" rows="1" placeholder="Escribe a Sara…" autocomplete="off"></textarea>
+        <button id="sendBtn" class="send" type="submit" aria-label="Enviar">↑</button>
+      </form>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+<script>
+(() => {
+  const els = {
+    url: document.getElementById('url'),
+    key: document.getElementById('key'),
+    sessionKey: document.getElementById('sessionKey'),
+    displayName: document.getElementById('displayName'),
+    connectBtn: document.getElementById('connectBtn'),
+    disconnectBtn: document.getElementById('disconnectBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+    status: document.getElementById('status'),
+    chat: document.getElementById('chat'),
+    form: document.getElementById('form'),
+    message: document.getElementById('message'),
+    sendBtn: document.getElementById('sendBtn'),
+    toast: document.getElementById('toast')
+  };
+
+  const STORE = 'openclaw_webchat_v1';
+  let ws = null;
+  let wsAuthed = false;
+  let reconnectTimer = null;
+  let manualClose = false;
+  let activeRunIds = new Set();
+  let currentTyping = null;
+
+  const DEFAULT_GATEWAY_URL = 'wss://vnic-zeux.tail9bc019.ts.net/__openclaw__/ws';
+
+  const cfg = loadCfg();
+  els.url.value = cfg.url || DEFAULT_GATEWAY_URL;
+  els.key.value = cfg.key || '';
+  els.sessionKey.value = cfg.sessionKey || 'agent:main:main';
+  els.displayName.value = cfg.displayName || 'Pablo iPhone';
+
+  appendMsg('system', 'Pon la key del gateway y pulsa Conectar. La URL de Tailscale ya viene preparada.');
+  setStatus('', 'desconectado');
+
+  function loadCfg() {
+    try { return JSON.parse(localStorage.getItem(STORE) || '{}') || {}; }
+    catch { return {}; }
+  }
+
+  function saveCfg() {
+    const data = {
+      url: els.url.value.trim(),
+      key: els.key.value.trim(),
+      sessionKey: els.sessionKey.value.trim() || 'agent:main:main',
+      displayName: els.displayName.value.trim() || 'Pablo iPhone'
+    };
+    localStorage.setItem(STORE, JSON.stringify(data));
+    return data;
+  }
+
+  function getInstanceId() {
+    const k = 'openclaw_webchat_instance_id';
+    let id = localStorage.getItem(k);
+    if (!id) {
+      id = crypto.randomUUID ? crypto.randomUUID() : 'web-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+      localStorage.setItem(k, id);
+    }
+    return id;
+  }
+
+  function normalizeWsUrl(raw) {
+    let url = raw.trim();
+    if (!url) return '';
+
+    if (!/^wss?:\/\//i.test(url)) {
+      url = 'wss://' + url;
+    }
+
+    url = url.replace(/\/$/, '');
+    if (!url.endsWith('/__openclaw__/ws')) {
+      url += '/__openclaw__/ws';
+    }
+    return url;
+  }
+
+  function rpcId(prefix) {
+    return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function setStatus(kind, text) {
+    els.status.className = 'status' + (kind ? ' ' + kind : '');
+    els.status.textContent = text;
+  }
+
+  function toast(text) {
+    els.toast.textContent = text;
+    els.toast.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => els.toast.classList.remove('show'), 2600);
+  }
+
+  function appendMsg(role, text) {
+    const row = document.createElement('div');
+    row.className = `msg ${role}`;
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text || '';
+    row.appendChild(bubble);
+    els.chat.appendChild(row);
+    els.chat.scrollTop = els.chat.scrollHeight;
+    return bubble;
+  }
+
+  function showTyping() {
+    removeTyping();
+    currentTyping = appendMsg('assistant', 'Sara está pensando…');
+    currentTyping.dataset.typing = '1';
+  }
+
+  function removeTyping() {
+    if (currentTyping) {
+      currentTyping.parentElement?.remove();
+      currentTyping = null;
+    }
+  }
+
+  function extractText(message) {
+    if (!message) return '';
+    if (typeof message === 'string') return message;
+    if (typeof message.text === 'string') return message.text;
+
+    if (Array.isArray(message.content)) {
+      return message.content.map(block => {
+        if (typeof block === 'string') return block;
+        if (block && block.type === 'text') return block.text || '';
+        if (block && typeof block.text === 'string') return block.text;
+        return '';
+      }).filter(Boolean).join('\n');
+    }
+
+    if (typeof message.message === 'string') return message.message;
+    return '';
+  }
+
+  function connect() {
+    const data = saveCfg();
+    const url = normalizeWsUrl(data.url);
+
+    if (!url) {
+      toast('Falta la URL del gateway');
+      return;
+    }
+    if (!data.key) {
+      toast('Falta la key/token del gateway');
+      return;
+    }
+
+    manualClose = false;
+    clearTimeout(reconnectTimer);
+
+    if (ws) {
+      try { ws.close(); } catch {}
+      ws = null;
+    }
+
+    wsAuthed = false;
+    setStatus('connecting', 'conectando…');
+
+    try {
+      ws = new WebSocket(url);
+    } catch (err) {
+      setStatus('error', 'URL inválida');
+      appendMsg('system', 'No pude abrir el WebSocket: ' + String(err));
+      return;
+    }
+
+    ws.onopen = () => {
+      setStatus('connecting', 'autenticando…');
+      sendRaw({
+        type: 'req',
+        id: rpcId('connect'),
+        method: 'connect',
+        params: {
+          minProtocol: 3,
+          maxProtocol: 3,
+          client: {
+            id: 'webchat',
+            displayName: data.displayName,
+            version: '1.0.0',
+            platform: 'web',
+            mode: 'webchat',
+            instanceId: getInstanceId()
+          },
+          auth: { token: data.key },
+          role: 'operator',
+          locale: navigator.language || 'es-ES',
+          userAgent: navigator.userAgent || 'browser'
+        }
+      });
+    };
+
+    ws.onmessage = (event) => handleFrame(event.data);
+
+    ws.onerror = () => {
+      setStatus('error', 'error');
+    };
+
+    ws.onclose = (event) => {
+      wsAuthed = false;
+      activeRunIds.clear();
+      removeTyping();
+      setStatus('', 'desconectado');
+
+      if (!manualClose) {
+        appendMsg('system', `Conexión cerrada${event.reason ? ': ' + event.reason : ''}. Reintento en 5s…`);
+        reconnectTimer = setTimeout(connect, 5000);
+      }
+    };
+  }
+
+  function disconnect() {
+    manualClose = true;
+    clearTimeout(reconnectTimer);
+    wsAuthed = false;
+    activeRunIds.clear();
+    removeTyping();
+    if (ws) {
+      try { ws.close(); } catch {}
+      ws = null;
+    }
+    setStatus('', 'desconectado');
+  }
+
+  function sendRaw(obj) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+    ws.send(JSON.stringify(obj));
+    return true;
+  }
+
+  function sendMessage(text) {
+    const data = saveCfg();
+
+    if (!ws || ws.readyState !== WebSocket.OPEN || !wsAuthed) {
+      toast('No está conectado todavía');
+      connect();
+      return false;
+    }
+
+    const runId = crypto.randomUUID ? crypto.randomUUID() : rpcId('run');
+    activeRunIds.add(runId);
+
+    const ok = sendRaw({
+      type: 'req',
+      id: rpcId('chat'),
+      method: 'chat.send',
+      params: {
+        sessionKey: data.sessionKey || 'agent:main:main',
+        message: text,
+        deliver: false,
+        timeoutMs: 0,
+        idempotencyKey: runId
+      }
+    });
+
+    if (ok) showTyping();
+    return ok;
+  }
+
+  function handleFrame(raw) {
+    let frame;
+    try { frame = JSON.parse(raw); }
+    catch {
+      removeTyping();
+      appendMsg('assistant', raw);
+      return;
+    }
+
+    if (frame.type === 'res' && String(frame.id || '').startsWith('connect-')) {
+      if (frame.ok) {
+        wsAuthed = true;
+        setStatus('connected', 'conectado');
+        toast('Conectado a OpenClaw');
+      } else {
+        wsAuthed = false;
+        setStatus('error', 'auth fallida');
+        appendMsg('system', 'Error de conexión: ' + (frame.error?.message || 'no autorizado'));
+      }
+      return;
+    }
+
+    if (frame.type === 'res' && frame.ok === false) {
+      removeTyping();
+      appendMsg('system', 'Error: ' + (frame.error?.message || 'petición fallida'));
+      return;
+    }
+
+    if (frame.type === 'res' && frame.payload?.runId) {
+      activeRunIds.add(frame.payload.runId);
+      return;
+    }
+
+    if (frame.type === 'event' && frame.event === 'chat') {
+      const p = frame.payload || {};
+      const sessionKey = els.sessionKey.value.trim() || 'agent:main:main';
+      if (p.sessionKey && p.sessionKey !== sessionKey) return;
+      if (p.runId && activeRunIds.size && !activeRunIds.has(p.runId)) return;
+
+      if (p.state === 'final') {
+        removeTyping();
+        if (p.runId) activeRunIds.delete(p.runId);
+        const text = extractText(p.message);
+        if (text) appendMsg('assistant', text);
+        else appendMsg('assistant', 'He recibido respuesta, pero no venía texto renderizable.');
+        return;
+      }
+
+      if (p.state === 'error') {
+        removeTyping();
+        if (p.runId) activeRunIds.delete(p.runId);
+        appendMsg('assistant', 'Error: ' + (p.errorMessage || 'falló la respuesta'));
+        return;
+      }
+    }
+
+    if (frame.type === 'event' && frame.event === 'shutdown') {
+      appendMsg('system', 'El gateway se está reiniciando.');
+      return;
+    }
+  }
+
+  els.connectBtn.addEventListener('click', connect);
+  els.disconnectBtn.addEventListener('click', disconnect);
+  els.clearBtn.addEventListener('click', () => {
+    els.chat.innerHTML = '';
+    appendMsg('system', 'Chat limpiado.');
+  });
+
+  els.form.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const text = els.message.value.trim();
+    if (!text) return;
+    appendMsg('user', text);
+    els.message.value = '';
+    autosize();
+    sendMessage(text);
+  });
+
+  els.message.addEventListener('input', autosize);
+  els.message.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' && !ev.shiftKey) {
+      ev.preventDefault();
+      els.form.requestSubmit();
+    }
+  });
+
+  function autosize() {
+    els.message.style.height = 'auto';
+    els.message.style.height = Math.min(150, els.message.scrollHeight) + 'px';
+  }
+})();
+</script>
+</body>
+</html>
